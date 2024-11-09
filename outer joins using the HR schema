@@ -1,0 +1,203 @@
+-- Quick read about different kinds of joins:
+-- https://www.geeksforgeeks.org/difference-between-right-join-and-right-outer-join/
+
+-- The following script demonstrates different kinds of outer joins using the HR schema.
+
+-- LEFT JOIN
+SELECT employee_id, first_name, last_name, department_name, salary 
+FROM hr.departments d 
+LEFT JOIN hr.employees e ON d.department_id = e.department_id 
+ORDER BY salary DESC;
+
+-- RIGHT JOIN
+SELECT employee_id, first_name, last_name, department_name, salary 
+FROM hr.departments d 
+RIGHT JOIN hr.employees e ON d.department_id = e.department_id 
+ORDER BY salary DESC;
+
+-- Exercise: Modify the above query to display the customer ID from both tables
+SELECT
+  c.customer_id AS customer_id_customers,
+  s.customer_id AS customer_id_sales,
+  c.customer_name,
+  s.sale_amount
+FROM customers c
+LEFT JOIN sales s ON c.customer_id = s.customer_id
+UNION
+SELECT
+  c.customer_id AS customer_id_customers,
+  s.customer_id AS customer_id_sales,
+  c.customer_name,
+  s.sale_amount
+FROM customers c
+RIGHT JOIN sales s ON c.customer_id = s.customer_id;
+
+-- LEFT OUTER JOIN Example
+SELECT employee_id, first_name, last_name, department_name, salary 
+FROM hr.departments d 
+LEFT OUTER JOIN hr.employees e ON d.department_id = e.department_id 
+ORDER BY salary DESC;
+
+-- Q1) Find non-clerical job types and employee count in each category with average salary
+SELECT 
+  j.job_title,
+  COUNT(e.employee_id) AS employee_count,
+  AVG(e.salary) AS avg_salary
+FROM employees e
+JOIN jobs j ON e.job_id = j.job_id
+WHERE j.job_title NOT LIKE '%Clerk%'
+GROUP BY j.job_title
+ORDER BY avg_salary DESC;
+
+-- Q3) List all IT-related departments with no managers
+SELECT d.department_name
+FROM departments d
+LEFT JOIN employees e ON d.department_id = e.department_id 
+AND e.job_id = (SELECT job_id FROM jobs WHERE job_title = 'Manager')
+WHERE d.department_name LIKE '%IT%' AND e.employee_id IS NULL
+ORDER BY d.department_name;
+
+-- Q4) Calculate years employee 101 worked as Account Manager
+SELECT TIMESTAMPDIFF(YEAR, start_date, end_date) AS years_as_account_manager 
+FROM job_history
+WHERE employee_id = 101 AND job_id = 'AC_MGR';
+
+-- Q5) Count employees in and not in manager category
+-- Employees in Manager Category
+SELECT COUNT(*) AS manager_count
+FROM employees
+WHERE job_id IN (
+  SELECT job_id 
+  FROM jobs
+  WHERE job_title IN ('President', 'Manager', 'Vice President')
+);
+
+-- Employees Not in Manager Category  
+SELECT COUNT(*) AS non_manager_count
+FROM employees
+WHERE job_id NOT IN (
+  SELECT job_id
+  FROM jobs
+  WHERE job_title IN ('President', 'Manager', 'Vice President')
+);
+
+-- Display columns and sort by salary (descending order)
+SELECT
+  e.employee_id,
+  e.first_name,
+  e.last_name,
+  d.department_name,
+  e.salary,
+  l.city,
+  c.country_name
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+JOIN locations l ON d.location_id = l.location_id
+JOIN countries c ON l.country_id = c.country_id
+ORDER BY salary DESC;
+
+-- Find employees working in London with department and job information
+SELECT
+  e.employee_id,
+  e.first_name,
+  e.last_name,
+  d.department_name,
+  e.job_id,
+  e.salary,
+  l.city
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+JOIN locations l ON d.location_id = l.location_id
+WHERE l.city = 'London';
+
+-- Display department, manager details for all employees
+SELECT
+  d.department_id,
+  d.department_name,
+  e.employee_id AS manager_id,
+  e.first_name AS manager_first_name
+FROM departments d
+LEFT JOIN employees e ON d.manager_id = e.employee_id;
+
+-- Show job title, employee name, and difference between salary and minimum salary
+SELECT
+  e.employee_id,
+  CONCAT(e.first_name, ' ', e.last_name) AS full_name,
+  j.job_title,
+  e.salary,
+  j.min_salary,
+  (e.salary - j.min_salary) AS salary_difference
+FROM employees e
+JOIN jobs j ON e.job_id = j.job_id
+ORDER BY salary_difference DESC;
+
+-- Calculate salary adjustments based on a market correction if applicable
+SELECT
+  e.employee_id,
+  e.first_name,
+  e.last_name,
+  d.department_name,
+  FLOOR(DATEDIFF(CURDATE(), e.hire_date) / 365) AS years_experience,
+  e.salary AS current_salary,
+  j.max_salary,
+  (e.salary - j.min_salary) AS salary_difference,
+  CASE
+    WHEN (e.salary - j.min_salary) > (e.salary * 0.3) THEN e.salary * 1.3
+    ELSE e.salary
+  END AS incremented_salary
+FROM employees e
+JOIN jobs j ON e.job_id = j.job_id
+JOIN departments d ON e.department_id = d.department_id
+ORDER BY salary_difference DESC;
+
+-- STORED PROCEDURES
+
+-- Simple Stored Procedure Example
+CREATE PROCEDURE high_sal()
+BEGIN
+  SELECT * FROM employees WHERE salary > 10000;
+END;
+
+-- Call Stored Procedure
+CALL hr.high_sal();
+
+-- Stored Procedure with Multiple Queries
+DELIMITER $$
+CREATE PROCEDURE high_sal3()
+BEGIN
+   SELECT * FROM employees WHERE salary > 10000;
+   SELECT * FROM employees WHERE salary > 15000;
+END $$
+DELIMITER ;
+
+-- Call Procedure
+CALL hr.high_sal3();
+
+-- Stored Procedure with Parameter
+CREATE PROCEDURE emp_sal(IN eid INT)
+BEGIN
+  SELECT first_name, salary FROM employees WHERE employee_id = eid;
+END;
+
+-- Invoke Procedure with Parameter
+CALL emp_sal(100);
+
+-- TEMPORARY TABLES
+-- Example of a temporary table for employees with commission
+CREATE TEMPORARY TABLE emp_with_commission AS 
+SELECT * FROM employees WHERE commission_pct IS NOT NULL;
+
+-- Subqueries
+SELECT first_name, salary 
+FROM employees
+WHERE salary > (SELECT AVG(salary) FROM employees);
+
+-- CTE (Common Table Expression) Example
+WITH manager AS (SELECT * FROM employees WHERE job_id LIKE '%mgr%')
+SELECT first_name, salary FROM manager;
+
+-- Indexing
+CREATE INDEX idx_first_name ON employees(first_name);
+
+-- Show Indexes
+SHOW INDEX FROM employees;
