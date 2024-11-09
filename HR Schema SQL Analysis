@@ -2,13 +2,6 @@
 
 A comprehensive collection of SQL queries for analyzing the Oracle HR sample schema, demonstrating various SQL concepts including JOINs, aggregate functions, and data analysis techniques.
 
-## 📋 Table of Contents
-- [Schema Overview](#schema-overview)
-- [Query Categories](#query-categories)
-- [Sample Queries](#sample-queries)
-- [Views](#views)
-- [Prerequisites](#prerequisites)
-
 ## 🗃️ Schema Overview
 The Oracle HR schema contains several related tables:
 - `EMPLOYEES`: Employee information including salary and hire dates
@@ -133,8 +126,6 @@ SELECT
   FLOOR(DATEDIFF(CURDATE(), e.hire_date) / 365) AS years_of_service
 FROM employees e;
 ```
-
-## 📚 Additional Resources
 - [Oracle HR Schema Documentation](https://docs.oracle.com/en/database/oracle/oracle-database/19/comsc/HR-sample-schema.html)
 - [Oracle SQL Reference](https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/index.html)
 
